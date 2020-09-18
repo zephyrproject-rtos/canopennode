@@ -11,6 +11,8 @@ zephyr_library_sources(
     CANopen.c
     stack/CO_Emergency.c
     stack/CO_HBconsumer.c
+    stack/CO_LSSmaster.c
+    stack/CO_LSSslave.c
     stack/CO_NMT_Heartbeat.c
     stack/CO_PDO.c
     stack/CO_SDO.c

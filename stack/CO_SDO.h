@@ -338,6 +338,18 @@ typedef enum{
         #define CO_SDO_BUFFER_SIZE    32
     #endif
 
+/**
+ * Size of fifo queue for SDO received messages.
+ *
+ * If block transfers are used size of fifo queue should be more that 1 message
+ * to avoid possible drops in consecutive SDO block upload transfers.
+ * To increase performance, value can be set to 1 if block transfers are not used
+ *
+ * Min value is 1.
+ */
+    #ifndef CO_SDO_RX_DATA_SIZE
+        #define CO_SDO_RX_DATA_SIZE   2
+    #endif
 
 /**
  * Object Dictionary attributes. Bit masks for attribute in CO_OD_entry_t.
@@ -452,19 +464,20 @@ typedef enum{
  * Internal states of the SDO server state machine
  */
 typedef enum {
-    CO_SDO_ST_IDLE                  = 0x00U,
-    CO_SDO_ST_DOWNLOAD_INITIATE     = 0x11U,
-    CO_SDO_ST_DOWNLOAD_SEGMENTED    = 0x12U,
-    CO_SDO_ST_DOWNLOAD_BL_INITIATE  = 0x14U,
-    CO_SDO_ST_DOWNLOAD_BL_SUBBLOCK  = 0x15U,
-    CO_SDO_ST_DOWNLOAD_BL_SUB_RESP  = 0x16U,
-    CO_SDO_ST_DOWNLOAD_BL_END       = 0x17U,
-    CO_SDO_ST_UPLOAD_INITIATE       = 0x21U,
-    CO_SDO_ST_UPLOAD_SEGMENTED      = 0x22U,
-    CO_SDO_ST_UPLOAD_BL_INITIATE    = 0x24U,
-    CO_SDO_ST_UPLOAD_BL_INITIATE_2  = 0x25U,
-    CO_SDO_ST_UPLOAD_BL_SUBBLOCK    = 0x26U,
-    CO_SDO_ST_UPLOAD_BL_END         = 0x27U
+    CO_SDO_ST_IDLE                   = 0x00U,
+    CO_SDO_ST_DOWNLOAD_INITIATE      = 0x11U,
+    CO_SDO_ST_DOWNLOAD_SEGMENTED     = 0x12U,
+    CO_SDO_ST_DOWNLOAD_BL_INITIATE   = 0x14U,
+    CO_SDO_ST_DOWNLOAD_BL_SUBBLOCK   = 0x15U,
+    CO_SDO_ST_DOWNLOAD_BL_SUB_RESP   = 0x16U,
+    CO_SDO_ST_DOWNLOAD_BL_SUB_RESP_2 = 0x17U,
+    CO_SDO_ST_DOWNLOAD_BL_END        = 0x18U,
+    CO_SDO_ST_UPLOAD_INITIATE        = 0x21U,
+    CO_SDO_ST_UPLOAD_SEGMENTED       = 0x22U,
+    CO_SDO_ST_UPLOAD_BL_INITIATE     = 0x24U,
+    CO_SDO_ST_UPLOAD_BL_INITIATE_2   = 0x25U,
+    CO_SDO_ST_UPLOAD_BL_SUBBLOCK     = 0x26U,
+    CO_SDO_ST_UPLOAD_BL_END          = 0x27U
 } CO_SDO_state_t;
 
 
@@ -587,8 +600,8 @@ typedef struct{
  * SDO server object.
  */
 typedef struct{
-    /** 8 data bytes of the received message. */
-    uint8_t             CANrxData[8];
+    /** FIFO queue of the received message 8 data bytes each */
+    uint8_t             CANrxData[CO_SDO_RX_DATA_SIZE][8];
     /** SDO data buffer of size #CO_SDO_BUFFER_SIZE. */
     uint8_t             databuffer[CO_SDO_BUFFER_SIZE];
     /** Internal flag indicates, that this object has own OD */
@@ -623,10 +636,18 @@ typedef struct{
     uint16_t            crc;
     /** Length of data in the last segment in block upload */
     uint8_t             lastLen;
+    /** Indication timeout in sub-block transfer */
+    bool_t              timeoutSubblockDownolad;
     /** Indication end of block transfer */
     bool_t              endOfTransfer;
-    /** Variable indicates, if new SDO message received from CAN bus */
-    volatile void      *CANrxNew;
+    /** Variables indicates, if new SDO message received from CAN bus */
+    volatile void      *CANrxNew[CO_SDO_RX_DATA_SIZE];
+    /** Index of CANrxData for new received SDO message */
+    uint8_t             CANrxRcv;
+    /** Index of CANrxData SDO message to processed */
+    uint8_t             CANrxProc;
+    /** Number of new SDO messages in CANrxData to process */
+    uint8_t             CANrxSize;
     /** From CO_SDO_initCallback() or NULL */
     void              (*pFunctSignal)(void);
     /** From CO_SDO_init() */
