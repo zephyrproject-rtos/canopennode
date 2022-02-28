@@ -1,4 +1,4 @@
-name: CANopenNode
+name: canopennode
 build:
   cmake-ext: True
   kconfig-ext: True
