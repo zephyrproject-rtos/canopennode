@@ -56,12 +56,15 @@ extern "C" {
  * @return Calculated CRC.
  */
 #ifdef CO_USE_OWN_CRC16
-extern
-#endif
+/* Map CANopenNode crc16_ccitt() to Zephyr crc16_itu_t() function */
+extern uint16_t crc16_itu_t(uint16_t seed, const uint8_t *src, size_t len);
+#define crc16_ccitt(block, blockLength, crc) crc16_itu_t(crc, block, blockLength)
+#else
 unsigned short crc16_ccitt(
         const unsigned char     block[],
         unsigned int            blockLength,
         unsigned short          crc);
+#endif
 
 #ifdef __cplusplus
 }
