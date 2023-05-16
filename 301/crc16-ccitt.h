@@ -76,9 +76,14 @@ void crc16_ccitt_single(uint16_t *crc, const uint8_t chr);
  *
  * @return Calculated CRC.
  */
+#if !((CO_CONFIG_CRC16) & CO_CONFIG_CRC16_EXTERNAL)
 uint16_t crc16_ccitt(const uint8_t block[],
                      size_t blockLength,
                      uint16_t crc);
+#else
+extern uint16_t crc16_itu_t(uint16_t seed, const uint8_t *src, size_t len);
+#define crc16_ccitt(block, blockLength, crc) crc16_itu_t(crc, block, blockLength)
+#endif /* !((CO_CONFIG_CRC16) & CO_CONFIG_CRC16_EXTERNAL) */
 
 
 /** @} */ /* CO_crc16_ccitt */

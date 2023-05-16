@@ -642,8 +642,8 @@ size_t CO_fifo_readR642a(CO_fifo_t *fifo, char *buf, size_t count, bool_t end) {
     float64_t n=0;
 
     if (fifo != NULL && count >= 30 && CO_fifo_getOccupied(fifo) == sizeof(n)) {
-        CO_fifo_read(fifo, (uint8_t *)&n, sizeof(n), NULL);
-        return sprintf(buf, "%g", CO_SWAP_64(n));
+        CO_fifo_read(fifo, (char *)&n, sizeof(n), NULL);
+        return sprintf(buf, "%Lg", CO_SWAP_64(n));
     }
     else {
         return CO_fifo_readHex2a(fifo, buf, count, end);
