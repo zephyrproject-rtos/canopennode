@@ -25,29 +25,46 @@
  */
 
 
+#include <stdio.h>
+
 #include "CANopen.h"
 
 
 #define TMR_TASK_INTERVAL   (1000)          /* Interval of tmrTask thread in microseconds */
 #define INCREMENT_1MS(var)  (var++)         /* Increment 1ms variable in tmrTask */
 
-/**
- * User-defined CAN base structure, passed as argument to CO_init.
- */
-struct CANbase {
-    uintptr_t baseAddress;  /**< Base address of the CAN module */
-};
+#define log_printf(macropar_message, ...) \
+        printf(macropar_message, ##__VA_ARGS__)
+
 
 /* Global variables and objects */
     volatile uint16_t   CO_timer1ms = 0U;   /* variable increments each millisecond */
+    uint8_t LED_red, LED_green;
+
 
 
 /* main ***********************************************************************/
 int main (void){
+    CO_ReturnError_t err;
     CO_NMT_reset_cmd_t reset = CO_RESET_NOT;
+    uint32_t heapMemoryUsed;
+    void *CANmoduleAddress = NULL; /* CAN module address */
+    uint8_t pendingNodeId = 10; /* read from dip switches or nonvolatile memory, configurable by LSS slave */
+    uint8_t activeNodeId = 10; /* Copied from CO_pendingNodeId in the communication reset section */
+    uint16_t pendingBitRate = 125;  /* read from dip switches or nonvolatile memory, configurable by LSS slave */
 
     /* Configure microcontroller. */
 
+
+    /* Allocate memory */
+    err = CO_new(&heapMemoryUsed);
+    if (err != CO_ERROR_NO) {
+        log_printf("Error: Can't allocate memory\n");
+        return 0;
+    }
+    else {
+        log_printf("Allocated %d bytes for CANopen objects\n", heapMemoryUsed);
+    }
 
     /* initialize EEPROM */
 
@@ -55,24 +72,34 @@ int main (void){
     /* increase variable each startup. Variable is stored in EEPROM. */
     OD_powerOnCounter++;
 
+    log_printf("CANopenNode - Reset application, count = %d\n", OD_powerOnCounter);
+
 
     while(reset != CO_RESET_APP){
 /* CANopen communication reset - initialize CANopen objects *******************/
-        CO_ReturnError_t err;
         uint16_t timer1msPrevious;
 
+        log_printf("CANopenNode - Reset communication...\n");
+
         /* disable CAN and CAN interrupts */
-        struct CANbase canBase = {
-            .baseAddress = 0u,  /* CAN module address */
-        };
 
         /* initialize CANopen */
-        err = CO_init(&canBase, 10/* NodeID */, 125 /* bit rate */);
-        if(err != CO_ERROR_NO){
-            while(1);
-            /* CO_errorReport(CO->em, CO_EM_MEMORY_ALLOCATION_ERROR, CO_EMC_SOFTWARE_INTERNAL, err); */
+        err = CO_CANinit(CANmoduleAddress, pendingBitRate);
+        if (err != CO_ERROR_NO) {
+            log_printf("Error: CAN initialization failed: %d\n", err);
+            return 0;
         }
-
+        err = CO_LSSinit(&pendingNodeId, &pendingBitRate);
+        if(err != CO_ERROR_NO) {
+            log_printf("Error: LSS slave initialization failed: %d\n", err);
+            return 0;
+        }
+        activeNodeId = pendingNodeId;
+        err = CO_CANopenInit(activeNodeId);
+        if(err != CO_ERROR_NO && err != CO_ERROR_NODE_ID_UNCONFIGURED_LSS) {
+            log_printf("Error: CANopen initialization failed: %d\n", err);
+            return 0;
+        }
 
         /* Configure Timer interrupt function for execution every 1 millisecond */
 
@@ -80,11 +107,20 @@ int main (void){
         /* Configure CAN transmit and receive interrupt */
 
 
+        /* Configure CANopen callbacks, etc */
+        if(!CO->nodeIdUnconfigured) {
+
+        }
+
+
         /* start CAN */
         CO_CANsetNormalMode(CO->CANmodule[0]);
 
         reset = CO_RESET_NOT;
         timer1msPrevious = CO_timer1ms;
+
+        log_printf("CANopenNode - Running...\n");
+        fflush(stdout);
 
         while(reset == CO_RESET_NOT){
 /* loop for normal program execution ******************************************/
@@ -96,11 +132,15 @@ int main (void){
 
 
             /* CANopen process */
-            reset = CO_process(CO, timer1msDiff, NULL);
+            reset = CO_process(CO, (uint32_t)timer1msDiff*1000, NULL);
+            LED_red = CO_LED_RED(CO->LEDs, CO_LED_CANopen);
+            LED_green = CO_LED_GREEN(CO->LEDs, CO_LED_CANopen);
 
             /* Nonblocking application code may go here. */
 
             /* Process EEPROM */
+
+            /* optional sleep for short time */
         }
     }
 
@@ -112,6 +152,7 @@ int main (void){
     /* delete objects from memory */
     CO_delete((void*) 0/* CAN module address */);
 
+    log_printf("CANopenNode finished\n");
 
     /* reset */
     return 0;
@@ -119,7 +160,7 @@ int main (void){
 
 
 /* timer thread executes in constant intervals ********************************/
-static void tmrTask_thread(void){
+void tmrTask_thread(void){
 
     for(;;) {
 
@@ -131,7 +172,7 @@ static void tmrTask_thread(void){
             bool_t syncWas;
 
             /* Process Sync */
-            syncWas = CO_process_SYNC(CO, TMR_TASK_INTERVAL);
+            syncWas = CO_process_SYNC(CO, TMR_TASK_INTERVAL, NULL);
 
             /* Read inputs */
             CO_process_RPDO(CO, syncWas);
@@ -139,7 +180,7 @@ static void tmrTask_thread(void){
             /* Further I/O or nonblocking application code may go here. */
 
             /* Write outputs */
-            CO_process_TPDO(CO, syncWas, TMR_TASK_INTERVAL);
+            CO_process_TPDO(CO, syncWas, TMR_TASK_INTERVAL, NULL);
 
             /* verify timer overflow */
             if(0) {
@@ -150,10 +191,8 @@ static void tmrTask_thread(void){
 }
 
 
-/* CAN interrupt function *****************************************************/
+/* CAN interrupt function executes on received CAN message ********************/
 void /* interrupt */ CO_CAN1InterruptHandler(void){
-    CO_CANinterrupt(CO->CANmodule[0]);
-
 
     /* clear interrupt flag */
 }

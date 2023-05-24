@@ -6,7 +6,7 @@
  * Object Dictionary Editor is currently an older, but functional web
  * application. For more info see See 'Object_Dictionary_Editor/about.html' in
  * <http://sourceforge.net/p/canopennode/code_complete/ci/master/tree/>
- * For more information on CANopen Object Dictionary see <CO_SDO.h>.
+ * For more information on CANopen Object Dictionary see <CO_SDOserver.h>.
  *
  * @file        CO_OD.c
  * @author      Janez Paternoster
@@ -30,10 +30,18 @@
  */
 
 
-#include "CO_driver.h"
-#include "CO_OD.h"
-#include "CO_SDO.h"
-
+// For CANopenNode V2 users, C macro `CO_VERSION_MAJOR=2` has to be added to project options
+#ifndef CO_VERSION_MAJOR
+ #include "CO_driver.h"
+ #include "CO_OD.h"
+ #include "CO_SDO.h"
+#elif CO_VERSION_MAJOR < 4
+ #include "301/CO_driver.h"
+ #include "CO_OD.h"
+ #include "301/CO_SDOserver.h"
+#else
+ #error This Object dictionary is not compatible with CANopenNode v4.0 and up!
+#endif
 
 /*******************************************************************************
    DEFINITION AND INITIALIZATION OF OBJECT DICTIONARY VARIABLES
@@ -48,6 +56,7 @@ struct sCO_OD_RAM CO_OD_RAM = {
 /*1003*/ {0x0L, 0x0L, 0x0L, 0x0L, 0x0L, 0x0L, 0x0L, 0x0L},
 /*1010*/ {0x3L},
 /*1011*/ {0x1L},
+/*1280*/{{0x3, 0x0L, 0x0L, 0x0}},
 /*2100*/ {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
 /*2103*/ 0x0,
 /*2104*/ 0x0,
@@ -135,6 +144,11 @@ struct sCO_OD_EEPROM CO_OD_EEPROM = {
            {(void*)&CO_OD_ROM.SDOServerParameter[0].maxSubIndex, 0x05,  1},
            {(void*)&CO_OD_ROM.SDOServerParameter[0].COB_IDClientToServer, 0x85,  4},
            {(void*)&CO_OD_ROM.SDOServerParameter[0].COB_IDServerToClient, 0x85,  4}};
+/*0x1280*/ const CO_OD_entryRecord_t OD_record1280[4] = {
+           {(void*)&CO_OD_RAM.SDOClientParameter[0].maxSubIndex, 0x06,  1},
+           {(void*)&CO_OD_RAM.SDOClientParameter[0].COB_IDClientToServer, 0xBE,  4},
+           {(void*)&CO_OD_RAM.SDOClientParameter[0].COB_IDServerToClient, 0xBE,  4},
+           {(void*)&CO_OD_RAM.SDOClientParameter[0].nodeIDOfTheSDOServer, 0x0E,  1}};
 /*0x1400*/ const CO_OD_entryRecord_t OD_record1400[3] = {
            {(void*)&CO_OD_ROM.RPDOCommunicationParameter[0].maxSubIndex, 0x05,  1},
            {(void*)&CO_OD_ROM.RPDOCommunicationParameter[0].COB_IDUsedByRPDO, 0x8D,  4},
@@ -293,7 +307,7 @@ const CO_OD_entry_t CO_OD[CO_OD_NoOfElements] = {
 {0x100A, 0x00, 0x05,  4, (void*)&CO_OD_ROM.manufacturerSoftwareVersion[0]},
 {0x1010, 0x01, 0x8E,  4, (void*)&CO_OD_RAM.storeParameters[0]},
 {0x1011, 0x01, 0x8E,  4, (void*)&CO_OD_RAM.restoreDefaultParameters[0]},
-{0x1012, 0x00, 0x85,  4, (void*)&CO_OD_ROM.COB_ID_TIME},
+{0x1012, 0x00, 0x8D,  4, (void*)&CO_OD_ROM.COB_ID_TIME},
 {0x1014, 0x00, 0x85,  4, (void*)&CO_OD_ROM.COB_ID_EMCY},
 {0x1015, 0x00, 0x8D,  2, (void*)&CO_OD_ROM.inhibitTimeEMCY},
 {0x1016, 0x04, 0x8D,  4, (void*)&CO_OD_ROM.consumerHeartbeatTime[0]},
@@ -302,6 +316,7 @@ const CO_OD_entry_t CO_OD[CO_OD_NoOfElements] = {
 {0x1019, 0x00, 0x0D,  1, (void*)&CO_OD_ROM.synchronousCounterOverflowValue},
 {0x1029, 0x06, 0x0D,  1, (void*)&CO_OD_ROM.errorBehavior[0]},
 {0x1200, 0x02, 0x00,  0, (void*)&OD_record1200},
+{0x1280, 0x03, 0x00,  0, (void*)&OD_record1280},
 {0x1400, 0x02, 0x00,  0, (void*)&OD_record1400},
 {0x1401, 0x02, 0x00,  0, (void*)&OD_record1401},
 {0x1402, 0x02, 0x00,  0, (void*)&OD_record1402},

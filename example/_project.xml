@@ -28,7 +28,7 @@ SDO server is implemented on all CANopen devices.
 Permissible value for SDO sever is 0 or 1.</description>
       <associatedObject index="1200" indexMax="1201" indexStep="1"/>
     </feature>
-    <feature name="SDO client" value="0">
+    <feature name="SDO client" value="1">
       <label lang="en">Service Data Object (SDO)</label>
       <description lang="en" URI="http://www.can-cia.org/canopen/protocol/sdo.html">A Service Data Object (SDO) reads from entries or writes to entries of the Object Dictionary.
 SDO client is usually a master device in a CANopen network.
@@ -142,6 +142,12 @@ bit    31: set to 0</description>
       <CANopenSubObject subIndex="00" name="max sub-index" objectType="7" dataType="05" accessType="ro" PDOmapping="no" defaultValue="1"/>
       <CANopenSubObject subIndex="01" name="restore all default parameters" objectType="7" defaultValue="0x00000001"/>
     </CANopenObject>
+    <CANopenObject index="1012" name="COB-ID TIME" objectType="7" memoryType="ROM" dataType="07" accessType="rw" PDOmapping="no" defaultValue="0x80000100">
+      <description>* bit 31: If set, CANopen device consumes TIME message
+* bit 30: If set, CANopen device produces TIME message
+* bit 11-29: set to 0
+* bit 0-10: 11-bit CAN-ID</description>
+    </CANopenObject>
     <CANopenObject index="1014" name="COB-ID EMCY" objectType="7" memoryType="ROM" dataType="07" accessType="ro" PDOmapping="no" defaultValue="$NODEID+0x80" accessFunctionName="CO_ODF_1014">
       <label lang="en">COB-ID emergency message</label>
       <description lang="en">bit  0-10: COB-ID
@@ -253,7 +259,7 @@ bit 0-7:   Node ID (optional)</description>
       <CANopenSubObject subIndex="01" name="COB-ID client to server" objectType="7" dataType="07" accessType="ro" PDOmapping="no" defaultValue="$NODEID+0x600"/>
       <CANopenSubObject subIndex="02" name="COB-ID server to client" objectType="7" dataType="07" accessType="ro" PDOmapping="no" defaultValue="$NODEID+0x580"/>
     </CANopenObject>
-    <CANopenObject index="1280" name="SDO client parameter" objectType="9" subNumber="4" memoryType="RAM" disabled="true">
+    <CANopenObject index="1280" name="SDO client parameter" objectType="9" subNumber="4" memoryType="RAM">
       <label lang="en">SDO client parameter</label>
       <description lang="en">0x1280 - 0x12FF SDO client parameter
 max sub-index
