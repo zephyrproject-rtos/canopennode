@@ -1138,7 +1138,7 @@ size_t CO_fifo_cpyTok2Vs(CO_fifo_t *dest, CO_fifo_t *src, CO_fifo_st *status) {
     /* repeat until destination space available and no error and not finished
      * and source characters available */
     while (destSpace > 0 && (st & CO_fifo_st_errMask) == 0 && !finished) {
-        uint8_t c;
+        uint8_t c = 0;
         if (!CO_fifo_getc(src, &c)) {
             break;
         }
@@ -1303,7 +1303,7 @@ size_t CO_fifo_cpyTok2B64(CO_fifo_t *dest, CO_fifo_t *src, CO_fifo_st *status) {
     /* repeat until destination space available and no error and not finished
      * and source characters available */
     while (destSpace >= 3 && (st & CO_fifo_st_errMask) == 0 && !finished) {
-        uint8_t c;
+        uint8_t c = 0;
         if (!CO_fifo_getc(src, &c)) {
             break;
         }
