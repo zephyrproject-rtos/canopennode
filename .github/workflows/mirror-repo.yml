@@ -1,0 +1,35 @@
+name: Mirror Branch to Repo
+
+on:
+  push:
+    branches:
+      - gudman/test-mirroring
+      - zephyr
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - url: git@github.com:redoxblox-dev/canopennode.git
+            key: IT_GITHUB_OSS
+          - url: git@github.com:redoxblox-oss/canopennode.git
+            key: IT_GITHUB_OSS
+          - url: git@github.com:redoxblox-opensource/canopennode.git
+            key: IT_REDOXBLOX_OPENSOURCE
+    steps:
+      - name: Checkout current branch
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # 4.2.2
+        with:
+          fetch-depth: 0 # checkout all branch and tag history
+
+      - name: Mirror branch to foobar
+        uses: redoxblox-opensource/workflow-actions/github-mirror@main
+        if: ${{ matrix.url != github.repositoryURL }}
+        with:
+          ssh_private_key: ${{ secrets[matrix.key] }}
+          target_repo_url: ${{ matrix.url }}
+          source_repo_ref: ${{ github.ref_name }}
+          target_repo_ref: ${{ github.ref_name }}
